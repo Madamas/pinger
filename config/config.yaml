@@ -1,8 +1,11 @@
 client:
   timeout: 1s
 pinger:
-  interval: 15s
+  interval: 5s
   targets:
     - host: 127.0.0.1
       port: 8080
       route: /alive
+storage:
+  connectTimeout: 1s
+  writeTimeout: 1s

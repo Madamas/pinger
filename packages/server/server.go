@@ -2,19 +2,21 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"pinger/packages/config"
 	"time"
 
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 func NewHTTPServer(
 	config config.Config,
 	lc fx.Lifecycle,
 	mux *http.ServeMux,
+	logger *zap.SugaredLogger,
 ) *http.Server {
 	server := &http.Server{
 		Addr:         ":8080",
@@ -25,9 +27,8 @@ func NewHTTPServer(
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			fmt.Println("Starting HTTP server at", server.Addr)
+			log.Printf("Starting HTTP server at %s\n", server.Addr)
 			ln, err := net.Listen("tcp", server.Addr)
-			fmt.Println("Hmmm")
 			if err != nil {
 				return err
 			}

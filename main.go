@@ -9,6 +9,7 @@ import (
 	"pinger/packages/logger"
 	"pinger/packages/pinger"
 	"pinger/packages/server"
+	"pinger/packages/telegram"
 	"time"
 
 	"go.uber.org/fx"
@@ -27,8 +28,11 @@ func main() {
 			logger.NewZap,
 			pinger.NewPinger,
 			pinger.NewClient,
+			telegram.NewBot,
+			telegram.NewNotifier,
 		),
 		fx.Invoke(func(*http.Server) {}),
+		fx.Invoke(func(pinger.Pinger) {}),
 		fx.StartTimeout(1*time.Second),
 		fx.StopTimeout(1*time.Second),
 	)

@@ -30,10 +30,36 @@ type Bot struct {
 	Debug bool
 }
 
+type Storage struct {
+	Url                    string `required:"true"`
+	Database               string `required:"true"`
+	InfoCollection         string `yaml:"infoCollection" required:"true"`
+	ConnectTimeout         string `yaml:"connectTimeout" required:"true"`
+	WriteTimeout           string `yaml:"writeTimeout" required:"true"`
+	ConnectTimeoutDuration time.Duration
+	WriteTimeoutDuration   time.Duration
+}
+
 type Config struct {
-	Client Client
-	Pinger Pinger
-	Bot    Bot
+	Client  Client
+	Pinger  Pinger
+	Bot     Bot
+	Storage Storage
+}
+
+func (s Storage) parse() (Storage, error) {
+	var err error
+	s.ConnectTimeoutDuration, err = time.ParseDuration(s.ConnectTimeout)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read connect timeout duration"))
+	}
+
+	s.WriteTimeoutDuration, err = time.ParseDuration(s.WriteTimeout)
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read write timeout duration"))
+	}
+
+	return s, err
 }
 
 func (c Client) parse() (Client, error) {
@@ -51,7 +77,31 @@ func (c Config) parse() (Config, error) {
 	var err error
 	c.Client, err = c.Client.parse()
 
+	if err != nil {
+		return c, err
+	}
+
+	c.Storage, err = c.Storage.parse()
+
+	if err != nil {
+		return c, err
+	}
+
+	c.Pinger, err = c.Pinger.parse()
+
 	return c, err
+}
+
+func (p Pinger) parse() (Pinger, error) {
+	var err error
+
+	p.IntervalDuration, err = time.ParseDuration(p.Interval)
+
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read pinger interval duration"))
+	}
+
+	return p, err
 }
 
 func Populate() (Config, error) {

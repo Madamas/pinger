@@ -55,8 +55,10 @@ func (p Pinger) run() {
 	go func() {
 		select {
 		case <-t.C:
+			p.logger.Infof("Pinger tick")
 			p.rotateRequest()
 		case <-p.quitter:
+			p.logger.Info("Stopping pinger")
 			return
 		}
 	}()
@@ -64,8 +66,13 @@ func (p Pinger) run() {
 
 func (p Pinger) rotateRequest() {
 	for _, v := range p.targets {
-		url := fmt.Sprintf("%s:%d/%s", v.Host, v.Port, v.Route)
-		_, err := p.client.Get(url)
+		url := fmt.Sprintf("http://%s:%d%s", v.Host, v.Port, v.Route)
+
+		p.logger.Infof("Sending request to %s", url)
+
+		resp, err := p.client.Get(url)
+
+		p.logger.Infof("Received status code %d", resp.StatusCode)
 
 		if err != nil {
 			p.logger.Errorf("Receiver error from target, %s, Error: %s", v.Host, err.Error())
