@@ -2,9 +2,11 @@ package pinger
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"pinger/packages/config"
 	"pinger/packages/storage"
+	"pinger/packages/telegram"
 	"time"
 
 	"go.uber.org/fx"
@@ -12,12 +14,13 @@ import (
 )
 
 type Pinger struct {
-	config  config.Pinger
-	quitter chan int
-	client  *http.Client
-	targets []storage.Target
-	logger  *zap.SugaredLogger
-	storage storage.Storage
+	config   config.Pinger
+	quitter  chan int
+	client   *http.Client
+	targets  []storage.Target
+	logger   *zap.SugaredLogger
+	storage  storage.Storage
+	notifier telegram.Notifier
 }
 
 func NewPinger(
@@ -26,6 +29,7 @@ func NewPinger(
 	logger *zap.SugaredLogger,
 	st storage.Storage,
 	lc fx.Lifecycle,
+	notifier telegram.Notifier,
 ) (Pinger, error) {
 	targets, err := st.FetchTargets()
 
@@ -34,12 +38,13 @@ func NewPinger(
 	}
 
 	p := Pinger{
-		config:  conf.Pinger,
-		quitter: make(chan int),
-		client:  client,
-		targets: targets,
-		logger:  logger,
-		storage: st,
+		config:   conf.Pinger,
+		quitter:  make(chan int),
+		client:   client,
+		targets:  targets,
+		logger:   logger,
+		storage:  st,
+		notifier: notifier,
 	}
 
 	lc.Append(fx.Hook{
@@ -97,19 +102,27 @@ func (p Pinger) rotateRequest() {
 			p.logger.Errorf("Receiver error from target, %s, Error: %s", target.Url, err.Error())
 		}
 
+		isOk, err := p.storage.IsResolved(target.Id)
+
+		if err != nil {
+			p.logger.Errorf("Couldn't check if target %s was ok or not. Err - %s", target.Id.Hex(), err.Error())
+		}
+
 		if err != nil || resp.StatusCode > 300 {
-			if err := p.storage.FailTarget(target.Id); err != nil {
-				p.logger.Errorf("Couldn't mark target %s as failed, err - %s", target.Id.Hex(), err.Error())
+			if isOk {
+				if err := p.storage.FailTarget(target.Id); err != nil {
+					p.logger.Errorf("Couldn't mark target %s as failed, err - %s", target.Id.Hex(), err.Error())
+				}
+
+				p.notifier.Notify(fmt.Sprintf("Target %s has failed", target.Url), target.OwnerId)
 			}
 		} else {
-			if isOk, err := p.storage.IsResolved(target.Id); err != nil {
-				p.logger.Errorf("Couldn't check if target %s was ok or not. Err - %s", target.Id.Hex(), err.Error())
-			} else {
-				if !isOk {
-					if err := p.storage.ResolveTarget(target.Id); err != nil {
-						p.logger.Errorf("Couldn't resolve target %s as failed, err - %s", target.Id.Hex(), err.Error())
-					}
+			if !isOk {
+				if err := p.storage.ResolveTarget(target.Id); err != nil {
+					p.logger.Errorf("Couldn't resolve target %s as failed, err - %s", target.Id.Hex(), err.Error())
 				}
+
+				p.notifier.Notify(fmt.Sprintf("Target %s was resolved", target.Url), target.OwnerId)
 			}
 		}
 	}

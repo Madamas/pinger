@@ -52,7 +52,7 @@ func (ms *mongoStorage) setTarget(targetId primitive.ObjectID, status bool) erro
 	defer cancel()
 
 	ts := time.Now()
-	filter := bson.D{primitive.E{Key: "targetId", Value: targetId}, primitive.E{Key: "resolved", Value: status}}
+	filter := bson.D{primitive.E{Key: "targetId", Value: targetId}}
 	update := bson.D{
 		primitive.E{
 			Key: "$set", Value: bson.D{
@@ -69,9 +69,18 @@ func (ms *mongoStorage) setTarget(targetId primitive.ObjectID, status bool) erro
 	options := options.FindOneAndUpdate().SetUpsert(true)
 
 	res := collection.FindOneAndUpdate(ctx, filter, update, options)
+
+	if res.Err() != nil {
+		if res.Err() == mongo.ErrNoDocuments {
+			return nil
+		}
+	}
+
 	return res.Err()
 }
 
+// IsResolved function returns true if target was resolved or wasn't failed at all
+// so if error is not null then bool is true
 func (ms *mongoStorage) IsResolved(targetId primitive.ObjectID) (bool, error) {
 	db := ms.client.Database(ms.config.Storage.Database)
 	collection := db.Collection(ms.config.Storage.StatusCollection)

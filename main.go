@@ -21,7 +21,6 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			server.AsRoute(server.NewAliveHandler),
-			server.AsRoute(server.NewUnwellHandler),
 			fx.Annotate(
 				server.NewServeMux,
 				fx.ParamTags(`group:"routes"`),
