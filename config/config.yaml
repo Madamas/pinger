@@ -5,6 +5,7 @@ pinger:
   reloadInterval: 30s
 bot:
   updateTimeout: 10
+  listenerEnabled: true
 storage:
   connectTimeout: 1s
   writeTimeout: 1s

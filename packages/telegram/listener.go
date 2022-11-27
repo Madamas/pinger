@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"pinger/packages/config"
 	"pinger/packages/storage"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -24,6 +25,7 @@ func NewListener(
 	channel tgbotapi.UpdatesChannel,
 	storage storage.Storage,
 	client *http.Client,
+	config config.Config,
 	lc fx.Lifecycle,
 ) Listener {
 	listener := listener{
@@ -37,7 +39,9 @@ func NewListener(
 	lc.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				go listener.Handle()
+				if config.Bot.ListenerEnabled {
+					go listener.Handle()
+				}
 
 				return nil
 			},
