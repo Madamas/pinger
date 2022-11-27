@@ -12,28 +12,27 @@ type Client struct {
 	TimeoutDuration time.Duration
 }
 
-type PingerTarget struct {
-	Host  string
-	Port  int
-	Route string
-}
+type Url string
 
 type Pinger struct {
-	Receiver         int64
-	Interval         string
-	IntervalDuration time.Duration
-	Targets          []PingerTarget
+	Interval               string `yaml:"interval" required:"true"`
+	ReloadInterval         string `yaml:"reloadInterval" required:"true"`
+	IntervalDuration       time.Duration
+	ReloadIntervalDuration time.Duration
 }
 
 type Bot struct {
-	Token string `env:"BOT_TOKEN" required:"true"`
-	Debug bool
+	Token         string `env:"BOT_TOKEN" required:"true"`
+	Debug         bool   `yaml:"debug" env:"BOT_DEBUG"`
+	UpdateTimeout int    `yaml:"updateTimeout"`
 }
 
 type Storage struct {
-	Url                    string `required:"true"`
-	Database               string `required:"true"`
-	InfoCollection         string `yaml:"infoCollection" required:"true"`
+	Url                    string `env:"MONGODB_URL" yaml:"url" required:"true"`
+	Database               string `yaml:"database" required:"true"`
+	TargetsCollection      string `yaml:"targetsCollection" required:"true"`
+	StatusCollection       string `yaml:"statusCollection" required:"true"`
+	UsersCollection        string `yaml:"usersCollection" required:"true"`
 	ConnectTimeout         string `yaml:"connectTimeout" required:"true"`
 	WriteTimeout           string `yaml:"writeTimeout" required:"true"`
 	ConnectTimeoutDuration time.Duration
@@ -99,6 +98,12 @@ func (p Pinger) parse() (Pinger, error) {
 
 	if err != nil {
 		panic(errors.Wrap(err, "Couldn't read pinger interval duration"))
+	}
+
+	p.ReloadIntervalDuration, err = time.ParseDuration(p.ReloadInterval)
+
+	if err != nil {
+		panic(errors.Wrap(err, "Couldn't read pinger reload interval duration"))
 	}
 
 	return p, err

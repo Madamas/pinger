@@ -2,9 +2,9 @@ package pinger
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"pinger/packages/config"
+	"pinger/packages/storage"
 	"time"
 
 	"go.uber.org/fx"
@@ -12,25 +12,34 @@ import (
 )
 
 type Pinger struct {
-	interval time.Duration
-	quitter  chan int
-	client   *http.Client
-	targets  []config.PingerTarget
-	logger   *zap.SugaredLogger
+	config  config.Pinger
+	quitter chan int
+	client  *http.Client
+	targets []storage.Target
+	logger  *zap.SugaredLogger
+	storage storage.Storage
 }
 
 func NewPinger(
 	client *http.Client,
-	config config.Config,
+	conf config.Config,
 	logger *zap.SugaredLogger,
+	st storage.Storage,
 	lc fx.Lifecycle,
-) Pinger {
+) (Pinger, error) {
+	targets, err := st.FetchTargets()
+
+	if err != nil {
+		return Pinger{}, err
+	}
+
 	p := Pinger{
-		interval: config.Pinger.IntervalDuration,
-		quitter:  make(chan int),
-		client:   client,
-		targets:  config.Pinger.Targets,
-		logger:   logger,
+		config:  conf.Pinger,
+		quitter: make(chan int),
+		client:  client,
+		targets: targets,
+		logger:  logger,
+		storage: st,
 	}
 
 	lc.Append(fx.Hook{
@@ -44,38 +53,64 @@ func NewPinger(
 		},
 	})
 
-	return p
+	return p, nil
 }
 
 func (p Pinger) run() {
 	p.logger.Infoln("Starting pinger")
 
-	t := time.NewTicker(p.interval)
+	t := time.NewTicker(p.config.IntervalDuration)
+	tt := time.NewTicker(p.config.ReloadIntervalDuration)
 
 	go func() {
-		select {
-		case <-t.C:
-			p.logger.Infof("Pinger tick")
-			p.rotateRequest()
-		case <-p.quitter:
-			p.logger.Info("Stopping pinger")
-			return
+		for {
+			select {
+			case <-tt.C:
+				p.reloadTargets()
+			case <-t.C:
+				p.rotateRequest()
+			case <-p.quitter:
+				p.logger.Info("Stopping pinger")
+				return
+			}
 		}
 	}()
 }
 
+func (p *Pinger) reloadTargets() {
+	newTargets, err := p.storage.FetchTargets()
+	if err != nil {
+		p.logger.Errorf("Failed to reload targets for pinger, err - %s", err.Error())
+	}
+	p.targets = newTargets
+}
+
 func (p Pinger) rotateRequest() {
-	for _, v := range p.targets {
-		url := fmt.Sprintf("http://%s:%d%s", v.Host, v.Port, v.Route)
+	for _, target := range p.targets {
+		p.logger.Infof("Sending request to %s", target.Url)
 
-		p.logger.Infof("Sending request to %s", url)
-
-		resp, err := p.client.Get(url)
+		resp, err := p.client.Get(string(target.Url))
 
 		p.logger.Infof("Received status code %d", resp.StatusCode)
 
 		if err != nil {
-			p.logger.Errorf("Receiver error from target, %s, Error: %s", v.Host, err.Error())
+			p.logger.Errorf("Receiver error from target, %s, Error: %s", target.Url, err.Error())
+		}
+
+		if err != nil || resp.StatusCode > 300 {
+			if err := p.storage.FailTarget(target.Id); err != nil {
+				p.logger.Errorf("Couldn't mark target %s as failed, err - %s", target.Id.Hex(), err.Error())
+			}
+		} else {
+			if isOk, err := p.storage.IsResolved(target.Id); err != nil {
+				p.logger.Errorf("Couldn't check if target %s was ok or not. Err - %s", target.Id.Hex(), err.Error())
+			} else {
+				if !isOk {
+					if err := p.storage.ResolveTarget(target.Id); err != nil {
+						p.logger.Errorf("Couldn't resolve target %s as failed, err - %s", target.Id.Hex(), err.Error())
+					}
+				}
+			}
 		}
 	}
 }

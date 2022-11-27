@@ -1,11 +1,14 @@
 client:
   timeout: 1s
 pinger:
-  interval: 5s
-  targets:
-    - host: 127.0.0.1
-      port: 8080
-      route: /alive
+  interval: 15s
+  reloadInterval: 30s
+bot:
+  updateTimeout: 10
 storage:
   connectTimeout: 1s
   writeTimeout: 1s
+  database: "pinger"
+  statusCollection: "statuses"
+  targetsCollection: "targets"
+  usersCollection: "users"

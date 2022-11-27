@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 	"net"
 	"net/http"
 	"pinger/packages/config"
@@ -27,7 +26,7 @@ func NewHTTPServer(
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			log.Printf("Starting HTTP server at %s\n", server.Addr)
+			logger.Infof("Starting HTTP server at %s\n", server.Addr)
 			ln, err := net.Listen("tcp", server.Addr)
 			if err != nil {
 				return err

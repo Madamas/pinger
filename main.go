@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+
 	"pinger/packages/config"
 	"pinger/packages/logger"
 	"pinger/packages/pinger"
 	"pinger/packages/server"
+	"pinger/packages/storage"
 	"pinger/packages/telegram"
-	"time"
 
 	"go.uber.org/fx"
 )
@@ -19,6 +21,7 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			server.AsRoute(server.NewAliveHandler),
+			server.AsRoute(server.NewUnwellHandler),
 			fx.Annotate(
 				server.NewServeMux,
 				fx.ParamTags(`group:"routes"`),
@@ -28,11 +31,16 @@ func main() {
 			logger.NewZap,
 			pinger.NewPinger,
 			pinger.NewClient,
+			storage.NewClient,
+			storage.NewStorage,
 			telegram.NewBot,
 			telegram.NewNotifier,
+			telegram.NewUpdateChannel,
+			telegram.NewListener,
 		),
 		fx.Invoke(func(*http.Server) {}),
 		fx.Invoke(func(pinger.Pinger) {}),
+		fx.Invoke(func(telegram.Listener) {}),
 		fx.StartTimeout(1*time.Second),
 		fx.StopTimeout(1*time.Second),
 	)
