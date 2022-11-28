@@ -52,7 +52,18 @@ func (ms *mongoStorage) setTarget(targetId primitive.ObjectID, status bool) erro
 	defer cancel()
 
 	ts := time.Now()
-	filter := bson.D{primitive.E{Key: "targetId", Value: targetId}}
+	filter := bson.D{
+		primitive.E{Key: "targetId", Value: targetId},
+		primitive.E{
+			Key: "resolved",
+			Value: bson.D{
+				primitive.E{
+					Key:   "$ne",
+					Value: true,
+				},
+			},
+		},
+	}
 	update := bson.D{
 		primitive.E{
 			Key: "$set", Value: bson.D{
