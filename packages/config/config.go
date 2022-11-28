@@ -116,7 +116,7 @@ func Populate() (Config, error) {
 
 	err := configor.New(&configor.Config{
 		ErrorOnUnmatchedKeys: true,
-		Verbose:              true,
+		Verbose:              false,
 	}).Load(&conf, "config/config.yaml")
 
 	if err != nil {

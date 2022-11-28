@@ -19,7 +19,6 @@ func NewClient(
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	logger.Infof("Connection url %s", config.Storage.Url)
 	clientOptions := options.Client().ApplyURI(config.Storage.Url)
 	client, err := mongo.Connect(ctx, clientOptions)
 
