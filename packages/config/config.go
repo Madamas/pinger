@@ -16,8 +16,8 @@ type Url string
 
 type Pinger struct {
 	Enabled                bool   `env:"PINGER_ENABLED" default:"false"`
-	Interval               string `yaml:"interval" required:"true"`
-	ReloadInterval         string `yaml:"reloadInterval" required:"true"`
+	Interval               string `env:"PINGER_INTERVAL" yaml:"interval" required:"true"`
+	ReloadInterval         string `env:"PINGER_RELOAD_INTERVAL" yaml:"reloadInterval" required:"true"`
 	IntervalDuration       time.Duration
 	ReloadIntervalDuration time.Duration
 }
