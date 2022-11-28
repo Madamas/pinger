@@ -23,10 +23,10 @@ type Pinger struct {
 }
 
 type Bot struct {
-	Token           string `env:"BOT_TOKEN" default:"false"`
+	Token           string `env:"BOT_TOKEN" required:"true"`
 	Debug           bool   `yaml:"debug" env:"BOT_DEBUG"`
 	UpdateTimeout   int    `yaml:"updateTimeout"`
-	ListenerEnabled bool   `yaml:"listenerEnabled" env:"BOT_LISTENER_ENABLED"`
+	ListenerEnabled bool   `yaml:"listenerEnabled" env:"BOT_LISTENER_ENABLED" default:"false"`
 }
 
 type Storage struct {
