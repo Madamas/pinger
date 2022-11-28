@@ -39,7 +39,7 @@ func NewPinger(
 
 	p := Pinger{
 		config:   conf.Pinger,
-		quitter:  make(chan int),
+		quitter:  make(chan int, 1),
 		client:   client,
 		targets:  targets,
 		logger:   logger,
@@ -49,7 +49,9 @@ func NewPinger(
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			p.run()
+			if conf.Pinger.Enabled {
+				p.run()
+			}
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {

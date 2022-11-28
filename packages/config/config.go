@@ -15,6 +15,7 @@ type Client struct {
 type Url string
 
 type Pinger struct {
+	Enabled                bool   `env:"PINGER_ENABLED" default:"false"`
 	Interval               string `yaml:"interval" required:"true"`
 	ReloadInterval         string `yaml:"reloadInterval" required:"true"`
 	IntervalDuration       time.Duration
@@ -22,7 +23,7 @@ type Pinger struct {
 }
 
 type Bot struct {
-	Token           string `env:"BOT_TOKEN" required:"true"`
+	Token           string `env:"BOT_TOKEN" default:"false"`
 	Debug           bool   `yaml:"debug" env:"BOT_DEBUG"`
 	UpdateTimeout   int    `yaml:"updateTimeout"`
 	ListenerEnabled bool   `yaml:"listenerEnabled" env:"BOT_LISTENER_ENABLED"`
