@@ -13,5 +13,13 @@ func NewUpdateChannel(
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = int(config.Bot.UpdateTimeout)
 
-	return bot.GetUpdatesChan(u)
+	var channel tgbotapi.UpdatesChannel
+
+	if config.Bot.ListenerEnabled {
+		channel = bot.GetUpdatesChan(u)
+	} else {
+		channel = *new(tgbotapi.UpdatesChannel)
+	}
+
+	return channel
 }
