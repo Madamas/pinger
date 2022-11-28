@@ -98,10 +98,10 @@ func (p Pinger) rotateRequest() {
 
 		resp, err := p.client.Get(string(target.Url))
 
-		p.logger.Infof("Received status code %d", resp.StatusCode)
-
 		if err != nil {
 			p.logger.Errorf("Receiver error from target, %s, Error: %s", target.Url, err.Error())
+		} else {
+			p.logger.Infof("Received status code %d", resp.StatusCode)
 		}
 
 		isOk, err := p.storage.IsResolved(target.Id)
