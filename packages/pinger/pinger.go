@@ -94,6 +94,8 @@ func (p *Pinger) reloadTargets() {
 
 func (p Pinger) rotateRequest() {
 	for _, target := range p.targets {
+		errorStatus := false
+		
 		p.logger.Infof("Sending request to %s", target.Url)
 
 		resp, err := p.client.Get(string(target.Url))
@@ -108,9 +110,12 @@ func (p Pinger) rotateRequest() {
 
 		if err != nil {
 			p.logger.Errorf("Couldn't check if target %s was ok or not. Err - %s", target.Id.Hex(), err.Error())
+			errorStatus = true
+		} else if (resp != nil && resp.StatusCode > 300) {
+			errorStatus = true
 		}
 
-		if err != nil || resp.StatusCode > 300 {
+		if errorStatus {
 			if isOk {
 				if err := p.storage.FailTarget(target.Id); err != nil {
 					p.logger.Errorf("Couldn't mark target %s as failed, err - %s", target.Id.Hex(), err.Error())
