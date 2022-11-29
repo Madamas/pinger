@@ -102,16 +102,19 @@ func (p Pinger) rotateRequest() {
 
 		if err != nil {
 			p.logger.Errorf("Receiver error from target, %s, Error: %s", target.Url, err.Error())
+			errorStatus = true
 		} else {
 			p.logger.Infof("Received status code %d", resp.StatusCode)
+			if resp.StatusCode > 300 {
+				p.logger.Info("Status code is higher than 300. Perceiving target as errored")
+				errorStatus = true
+			}
 		}
 
 		isOk, err := p.storage.IsResolved(target.Id)
 
 		if err != nil {
 			p.logger.Errorf("Couldn't check if target %s was ok or not. Err - %s", target.Id.Hex(), err.Error())
-			errorStatus = true
-		} else if (resp != nil && resp.StatusCode > 300) {
 			errorStatus = true
 		}
 
