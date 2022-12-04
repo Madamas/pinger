@@ -8,7 +8,7 @@ import (
 )
 
 type Client struct {
-	Timeout         string `yaml:"timeout" required:"true"`
+	Timeout         string `env:"CLIENT_TIMEOUT" yaml:"timeout" required:"true"`
 	TimeoutDuration time.Duration
 }
 
